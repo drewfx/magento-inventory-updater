@@ -12,7 +12,7 @@ class InventoryUpdater
 
     public function __construct(StockRegistryInterface $stockRegistry, Logger $logger) {
         $this->stockRegistry = $stockRegistry;
-        $this->logger        = $logger;
+        $this->logger           = $logger;
     }
 
     public function run() {
@@ -26,6 +26,27 @@ class InventoryUpdater
 
         // update according and check if the sku exists before updating to avoid errors.
         // log when item is updated
+		$lines = [];
+
+        foreach ($lines as $line) {
+            $sku = $line[0];
+
+            // verify it resembles a sku
+
+            $product = $this->stockRegistry->getStockItemBySku($sku);
+            if ($product && is_object($product)) {
+                $qty = (int)$line[1];
+
+                $product->setQty($qty);
+
+                if ($qty > 0) {
+                    $product->setIsInStock(true);
+                } else {
+                    $product->setIsInStock(false);
+                }
+                $product->save();
+            }
+        }
 
         // finish
     }
@@ -36,5 +57,17 @@ class InventoryUpdater
 
     private function checkForFile() {
 
+    }
+	
+    protected function startMessage() {
+        $this->logger->info('Inventory Updater is starting.');
+    }
+
+    protected function completeMessage() {
+        $this->logger->info('Inventory Updater is complete.');
+    }
+
+    protected function error($message = '') {
+        $this->logger->error($message);
     }
 }
