@@ -1,6 +1,6 @@
 <?php
 
-namespace GC\InventoryUpdater\Logger;
+namespace GC\Inventory\Logger;
 
 use Monolog\Logger;
 
