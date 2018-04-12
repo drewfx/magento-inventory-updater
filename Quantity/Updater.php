@@ -1,11 +1,10 @@
 <?php
 
-namespace GC\Inventory;
+namespace Drewsauce\StockUpdater\Quantity;
 
 use \Magento\CatalogInventory\Api\StockRegistryInterface;
-use \GC\Inventory\Logger\Logger;
 
-class InventoryUpdater
+class Updater
 {
     const SKU = 'sku';
     const QTY = 'qty';
@@ -20,7 +19,7 @@ class InventoryUpdater
      * File location for our csv. (TBD)
      * @var string
      */
-    protected $fileLocation    = '../inventory.csv'; // TODO: replace with actual file location
+    protected $fileLocation = __DIR__ . '/../inventory.csv'; // TODO: replace with actual file location
 
     /**
      * @var StockRegistryInterface
@@ -28,7 +27,7 @@ class InventoryUpdater
     protected $stockRegistry;
 
     /**
-     * @var Logger
+     * @var \Drewsauce\StockUpdater\Logger\Logger
      */
     protected $logger;
 
@@ -51,10 +50,10 @@ class InventoryUpdater
     /**
      * Handler constructor.
      *
-     * @param StockRegistryInterface $stockRegistry
-     * @param Logger                 $logger
+     * @param StockRegistryInterface                $stockRegistry
+     * @param \Drewsauce\StockUpdater\Logger\Logger $logger
      */
-    public function __construct(StockRegistryInterface $stockRegistry, Logger $logger)
+    public function __construct(StockRegistryInterface $stockRegistry, \Drewsauce\StockUpdater\Logger\Logger $logger)
     {
         $this->stockRegistry = $stockRegistry;
         $this->logger        = $logger;
@@ -69,10 +68,10 @@ class InventoryUpdater
             $this->setHeaders();
 
             if ($this->verifyHeaders()) {
-                $this->updateInventory();
+                $this->updateStock();
             }
         } else {
-            $this->logger->alert('Inventory file not found: ' . $this->fileLocation);
+            $this->logger->alert('Stock file not found: ' . $this->fileLocation);
         }
 
         // finish
@@ -88,17 +87,16 @@ class InventoryUpdater
     protected function setFile()
     {
         try {
-            $file = fopen($this->fileLocation, 'r');
-
             // Check file is not empty.
-            if (filesize($file) !== 0 && !empty(trim(file_get_contents($file)))) {
-                $this->file = $file;
+            if ($this->fileNotEmpty()) {
+                $this->file = fopen($this->fileLocation, 'r');
             } else {
-                $this->logger->error('Inventory file is empty: ' . $this->fileLocation);
+                $this->logger->error('Stock file is empty: ' . $this->fileLocation);
                 die();
             }
         } catch (\Exception $e) {
-            $this->logger->error('Inventory file unable to be opened: ' . $this->fileLocation);
+            $this->logger->error('Stock file unable to be opened: ' . $this->fileLocation);
+            $this->logger->error($e->getMessage());
             die();
         }
     }
@@ -111,6 +109,15 @@ class InventoryUpdater
     protected function checkForFile()
     {
         return file_exists($this->fileLocation);
+    }
+
+    /**
+     * Checks to see if the file is empty.
+     *
+     * @return bool
+     */
+    protected function fileNotEmpty() {
+        return (filesize($this->fileLocation) !== 0 && !empty(trim(file_get_contents($this->fileLocation))));
     }
 
     /**
@@ -139,20 +146,20 @@ class InventoryUpdater
 
             // Check for our SKU headers (required).
             if (!$this->checkForHeader(self::SKU)) {
-                $this->logger->error('Inventory Updater is missing the sku header.');
+                $this->logger->error('Stock Updater is missing the sku header.');
                 die();
             }
 
             // Check for our QTY headers (required).
             if (!$this->checkForHeader(self::QTY)) {
-                $this->logger->error('Inventory Updater is missing the qty header.');
+                $this->logger->error('Stock Updater is missing the qty header.');
                 die();
             }
 
             //  All requirements met, return true.
             return true;
         } else {
-            $this->logger->error('Inventory Updater parsing error, headers not read as an array.');
+            $this->logger->error('Stock Updater parsing error, headers not read as an array.');
             die();
         }
     }
@@ -175,10 +182,23 @@ class InventoryUpdater
         return false;
     }
 
-    protected function updateInventory() {
+    protected function updateStock() {
+        $start = microtime(true);
+
+        $rowCount       = 0;
+        $updateSuccess  = 0;
+        $updateFailure  = 0;
+        $noSku          = 0;
+        $incorrectRowFormat = 0;
+
         while ($row = fgetcsv($this->file, 2000, ',')) {
+            ++$rowCount;
             // Check our row meets the required columns count.
+            $row = $this->removeEmptyValues($row);
+
             if (count($row) < $this->requiredColumns) {
+                $this->logger->error('Stock Updater skipping row ' . $rowCount . ' lack of data columns.');
+
                 continue;
             }
 
@@ -191,7 +211,8 @@ class InventoryUpdater
             try {
                 $stockItem = $this->stockRegistry->getStockItemBySku($sku);
             } catch (\Exception $e) {
-                $this->logger->info('Inventory Updater invalid SKU: ' . $sku);
+                $this->logger->info('Stock Updater invalid SKU: ' . $sku);
+                $noSku++;
                 continue;
             }
 
@@ -205,27 +226,46 @@ class InventoryUpdater
 
                 try {
                     $this->stockRegistry->updateStockItemBySku($sku, $stockItem);
+                    $this->logger->info('Stock item ' . $sku . ' successfully updated to quantity ' . $qty);
+                    $updateSuccess++;
                 } catch (\Exception $e) {
-                    $this->logger->error('Inventory Updater was unable to update SKU: ' . $sku);
+                    $this->logger->error('Stock Updater was unable to update SKU: ' . $sku);
+                    $this->logger->error($e->getMessage());
+                    $updateFailure++;
                 }
             }
 
         }
+
+        $end = microtime(true);
+        $this->logger->info('------- Stock Updater took ' . (($end - $start) / 60) . ' seconds -------');
+        $this->logger->info('Number of successful updates: ' . $updateSuccess);
+        $this->logger->info('Number of failures: ' . $updateFailure);
+        $this->logger->info('Number of no sku items: ' . $noSku);
+        $this->logger->info('Number of incorrect row format: '. $incorrectRowFormat);
+    }
+
+    protected function removeEmptyValues($row) {
+        if (!empty($row)) {
+            return array_filter($row, function($value) {
+                return $value !== '';}
+            );
+        }
     }
 
     /**
-     * Signifies the start of our inventory update procedures in the log file.
+     * Signifies the start of our stock update procedures in the log file.
      */
     protected function startMessage()
     {
-        $this->logger->info('Inventory Updater is starting.');
+        $this->logger->info('Stock Updater is starting.');
     }
 
     /**
-     * Signifies the end of our inventory update procedures in the log file.
+     * Signifies the end of our stock update procedures in the log file.
      */
     protected function completeMessage()
     {
-        $this->logger->info('Inventory Updater is complete.');
+        $this->logger->info('Stock Updater is complete.');
     }
 }

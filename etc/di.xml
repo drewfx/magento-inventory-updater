@@ -1,22 +1,21 @@
-<?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <type name="Magento\Framework\Console\CommandListInterface">
+    <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
-                <item name="gcInventoryUpdaterCommand" xsi:type="object">GC\Inventory\Console\Command\InventoryUpdaterCommand</item>
+                <item name="update:stock-quantities" xsi:type="object">Drewsauce\StockUpdater\Console\Command\StockUpdaterCommand</item>
             </argument>
         </arguments>
     </type>
-    <type name="GC\Inventory\Logger\Handler">
+    <type name="Drewsauce\StockUpdater\Logger\Handler">
         <arguments>
             <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem\Driver\File</argument>
         </arguments>
     </type>
-    <type name="GC\Inventory\Logger\Logger">
+    <type name="Drewsauce\StockUpdater\Logger\Logger">
         <arguments>
-            <argument name="name" xsi:type="string">Logger</argument>
+            <argument name="name" xsi:type="string">StockUpdaterLogger</argument>
             <argument name="handlers"  xsi:type="array">
-                <item name="system" xsi:type="object">GC\Inventory\Logger\Handler</item>
+                <item name="system" xsi:type="object">Drewsauce\StockUpdater\Logger\Handler</item>
             </argument>
         </arguments>
     </type>
