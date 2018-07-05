@@ -1,6 +1,6 @@
 <?php
 
-namespace Drewsauce\StockUpdater\Logger;
+namespace Drewsauce\StockSync\Logger;
 
 use Monolog\Logger;
 

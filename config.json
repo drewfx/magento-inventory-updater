@@ -1,0 +1,32 @@
+{
+  "local": {
+    "creds": {
+      "key": "key",
+      "secret": "secret"
+    },
+    "aws": {
+      "bucket": "bucket",
+      "region": "region",
+      "incoming": "incoming"
+    },
+    "folders": {
+      "incoming": "path/to/folder",
+      "archive": "path/to/archive"
+    }
+  },
+  "development": {
+    "creds": {
+      "key": "key",
+      "secret": "secret"
+    },
+    "aws": {
+      "bucket": "bucket",
+      "region": "region",
+      "incoming": "incoming"
+    },
+    "folders": {
+      "incoming": "path/to/folder",
+      "archive": "path/to/archive"
+    }
+  }
+}

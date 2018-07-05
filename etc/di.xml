@@ -2,20 +2,20 @@
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
-                <item name="update:stock-quantities" xsi:type="object">Drewsauce\StockUpdater\Console\Command\StockUpdaterCommand</item>
+                <item name="drewsauce:update:stock-quantities" xsi:type="object">Drewsauce\StockSync\Console\Command\StockSyncCommand</item>
             </argument>
         </arguments>
     </type>
-    <type name="Drewsauce\StockUpdater\Logger\Handler">
+    <type name="Drewsauce\StockSync\Logger\Handler">
         <arguments>
             <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem\Driver\File</argument>
         </arguments>
     </type>
-    <type name="Drewsauce\StockUpdater\Logger\Logger">
+    <type name="Drewsauce\StockSync\Logger\Logger">
         <arguments>
-            <argument name="name" xsi:type="string">StockUpdaterLogger</argument>
+            <argument name="name" xsi:type="string">StockSyncLogger</argument>
             <argument name="handlers"  xsi:type="array">
-                <item name="system" xsi:type="object">Drewsauce\StockUpdater\Logger\Handler</item>
+                <item name="system" xsi:type="object">Drewsauce\StockSync\Logger\Handler</item>
             </argument>
         </arguments>
     </type>
